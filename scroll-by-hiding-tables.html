@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head><title>Scroll by hiding tables</title></head>
+<style>
+    table {
+      table-layout: fixed;
+      border-collapse: separate;
+      width: 10px; /* Apparently this is necessary to actually allow sizing a table cell?! */
+    }
+
+    td {
+      width: 100px;
+      border: 1px solid Black;
+    }
+
+    .hidden {
+        display: none;
+    }
+
+</style>
+<script>
+
+window.util = {
+  randomInt: function(a) {
+      return Math.floor(Math.random() * a);
+  },
+  repeat: function(string, length) {
+      return(new Array(length + 1)).join(string);
+  },
+  partial: function(fn, var_args) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return function() {
+        var newArgs = Array.prototype.slice.call(arguments);
+        newArgs.unshift.apply(newArgs, args);
+        return fn.apply(this, newArgs)
+    }
+  }
+};
+
+function Harness()
+{
+    window.addEventListener('DOMContentLoaded', this._setup.bind(this));
+    this._cycle = this._cycle.bind(this);
+}
+
+Harness.prototype = {
+    running: false,
+    runCount: 0,
+    run: function() {
+        this.test = this.useOneTable.checked ? new SlidingTableTest() : new ManyTablesTest();
+        console.log(this.test);
+        this.container.innerHTML = '';
+        this.test.setup(this.container);
+        this.running = true;
+        this.last = new Date();
+        this.runCount = 0;
+        window.webkitRequestAnimationFrame(this._cycle);
+    },
+    stop: function() {
+        this.running = false;
+    },
+    _cycle: function() {
+        var now = new Date();
+        if (this.runCount++ % 10 == 0)
+            this.fps.replaceChild(document.createTextNode(Math.round(1000 / (now - this.last))), this.fps.firstChild);
+        this.last = now;
+        this.test.cycle();
+        if (this.running)
+            window.webkitRequestAnimationFrame(this._cycle);
+    },
+    _setup: function() {
+        this.status = document.querySelector('header>span');
+        this.fps = document.querySelector('header>em');
+        this.useOneTable = document.querySelector('header>input[type=checkbox]');
+        this.container = document.querySelector('#container');
+        document.querySelector('#go').addEventListener('click', this.run.bind(this));
+        document.querySelector('#stop').addEventListener('click', this.stop.bind(this));
+    }
+};
+
+
+function ManyTablesTest()
+{
+    this.ALPHABET = 'abcdefghijklmnopqrstuv';
+    this.TABLE_COUNT = 10;
+    this.currentTable = 0;
+    this.numRows = 80;
+    this.numColumns = 25;
+    this.textWeight = 8;
+}
+
+ManyTablesTest.prototype.setup = function(container)
+{
+    this.container = container;
+    this.tables = [];
+    for(var i = 0; i < this.TABLE_COUNT; i++) {
+        var table = this.createTable(this.numRows, this.numColumns, this.textWeight);
+        if (i)
+            table.style.display = 'none';
+        this.container.appendChild(table);
+        this.tables.push(table);
+    }
+}
+
+ManyTablesTest.prototype.cycle = function()
+{
+    this.tables[this.currentTable].style.display = 'none';
+    if (++this.currentTable >= this.TABLE_COUNT)
+        this.currentTable = 0;
+    this.tables[this.currentTable].style.removeProperty('display');
+}
+
+ManyTablesTest.prototype.getText = function()
+{
+    return util.repeat(this.ALPHABET.charAt(util.randomInt(this.ALPHABET.length)), this.textWeight);
+}
+
+ManyTablesTest.prototype.createTBodyHtml = function(numRows, numColumns, textWeight)
+{
+    var html = ['<tbody>'];
+    for (var row = 1; row <= numRows; row++) {
+        var rowHtml = [];
+        rowHtml[0] = '<tr>';
+        for (var col = 1; col <= numColumns; col++) {
+            rowHtml[col] = ['<td>', this.getText(textWeight), '</td>'].join('');
+        }
+        rowHtml.push('</tr>');
+        html.push(rowHtml.join(''));
+    }
+    html.push('</tbody>');
+    return html.join('');
+}
+
+ManyTablesTest.prototype.createTable = function(numRows, numColumns, textWeight)
+{
+    var table = document.createElement('table');
+    table.innerHTML = this.createTBodyHtml(numRows, numColumns, textWeight);
+    return table;
+}
+
+
+function SlidingTableTest()
+{
+    ManyTablesTest.call(this);
+    this.numWindows = 10;
+    this.currentWindow = 0;
+}
+
+SlidingTableTest.prototype = Object.create(ManyTablesTest.prototype);
+
+SlidingTableTest.prototype.setup = function(container)
+{
+    this.container = container;
+    var html = [];
+    for(var i = 0; i < this.numWindows; i++) {
+        var tbodyHtml = this.createTBodyHtml(this.numRows, this.numColumns, this.textWeight);
+        html.push(tbodyHtml);
+    }
+    var table = document.createElement('table');
+    table.innerHTML = html.join('');
+    this.tbodies = [].slice.call(table.querySelectorAll('tbody'), 0);
+    this.tbodies.forEach(function(tbody) {
+        tbody.className = 'hidden';
+    });
+    this.container.appendChild(table);
+}
+
+SlidingTableTest.prototype.cycle = function()
+{
+    this.tbodies[this.currentWindow].className = 'hidden';
+    if (++this.currentWindow >= this.numWindows)
+        this.currentWindow = 0;
+    this.tbodies[this.currentWindow].className = '';
+}
+
+var harness = new Harness();
+
+</script>
+<body>
+<header>
+    <em> </em>
+    <button id="go">Go</button>
+    <button id="stop">Stop</button>
+    <input type="checkbox">Use one table
+    <span></span>
+</header>
+<div id="container"></div>
+</body>
+</html>
