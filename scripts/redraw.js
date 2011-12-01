@@ -63,13 +63,12 @@ function renderTable(container, numRows, numColumns, textWeight) {
   console.time('build-html');
   for (var row = 1; row <= numRows; row++) {
     var rowHtml = [];
-    rowHtml[0] = '<tr class="table-row">';
+    rowHtml[0] = '<tr>';
     for (var col = 1; col <= numColumns; col++) {
-      rowHtml[col] = ['<td class="table-cell"  id="', getId(row, col),
-           '">', getText(textWeight), '</td>'].join('');
+      rowHtml[col] = ['<td><div id="', getId(row, col), '">', getText(textWeight), '</div></td>'].join('');
     }
     rowHtml.push('</tr>');
-    html[row] = rowHtml.join('');
+    html.push(rowHtml.join(''));
   }
   html.push('</tbody></table>');
   console.timeEnd('build-html');
@@ -101,9 +100,7 @@ function updateText(numRows, numColumns, textWeight) {
     for (var col = 1; col <= numColumns; col++) {
       var elem = document.getElementById(getId(row, col));
       if (elem) {
-        // elem.innerHTML = getText(textWeight);
-        elem.innerHTML = '';
-        elem.appendChild(getTextNode(textWeight))
+        elem.replaceChild(getTextNode(textWeight), elem.firstChild)
       }
     }
   }

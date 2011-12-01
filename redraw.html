@@ -7,15 +7,11 @@
     table {
       table-layout: fixed;
       border-collapse: separate;
+      width: 10px; /* Apparently this is necessary to actually allow sizing a table cell?! */
     }
 
-    .table-cell {
-      width: 75px;
-      border: 1px solid Gray;
-    }
-
-    .table-row {
-      height: 16px;
+    td {
+      width: 80px;
     }
 
     .row {
@@ -58,7 +54,7 @@ Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
 <select id="rendering">
   <option value="inline">Inline-block divs</option>
   <option value="absolute">Absolute divs</option>
-  <option value="table">Table</option>
+  <option value="table" selected>Table</option>
   <option value="single-column">Single Column Divs</option>
 </select>
 <button onclick="renderOnce()">Render Once</button>
