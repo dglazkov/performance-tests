@@ -8,6 +8,14 @@ window.util = {
   },
   repeat: function(string, length) {
     return(new Array(length + 1)).join(string);
+  },
+  partial: function(fn, var_args) {
+    var args = Array.prototype.slice.call(arguments, 1);
+    return function() {
+      var newArgs = Array.prototype.slice.call(arguments);
+      newArgs.unshift.apply(newArgs, args);
+      return fn.apply(this, newArgs)
+    }
   }
 };
 

@@ -108,7 +108,7 @@ Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
     var rows = parseInt(document.getElementById('rows').value, 10);
     var cols = parseInt(document.getElementById('columns').value, 10);
     var textWeight = parseInt(document.getElementById('text-weight').value, 10);
-    renderInLoop(fpsDiv, goog.partial(updateText, rows, cols, textWeight));
+    renderInLoop(fpsDiv, util.partial(updateText, rows, cols, textWeight));
   }
 
 </script>
