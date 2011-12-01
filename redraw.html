@@ -1,0 +1,117 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>Grid Rendering Benchmarks</title>
+  <script src="scripts/redraw.js"></script>
+  <style type="text/css">
+    table {
+      table-layout: fixed;
+      border-collapse: separate;
+    }
+
+    .table-cell {
+      width: 75px;
+      border: 1px solid Gray;
+    }
+
+    .table-row {
+      height: 16px;
+    }
+
+    .row {
+      white-space: nowrap;
+    }
+
+    .inline-cell {
+      border: 1px solid Gray;
+      display: inline-block;
+      width: 75px;
+      height: 16px;
+    }
+
+    .absolute-cell {
+      border: 1px solid Gray;
+      position: absolute;
+      width: 75px;
+      height: 16px;
+    }
+
+    .column-div {
+      width: 75px;
+      border: 1px solid Gray;
+      display: inline-block;
+    }
+
+    #container {
+      position: relative;
+      white-space: nowrap;
+    }
+
+  </style>
+</head>
+<body>
+<div>Grid rendering benchmarks</div>
+FPS: <span id="fps"></span>
+Rows: <input type="text" id="rows" value="80"/>
+Columns: <input type="text" id="columns" value="25"/>
+Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
+<select id="rendering">
+  <option value="inline">Inline-block divs</option>
+  <option value="absolute">Absolute divs</option>
+  <option value="table">Table</option>
+  <option value="single-column">Single Column Divs</option>
+</select>
+<button onclick="renderOnce()">Render Once</button>
+<button onclick="loop()">Render in Loop</button>
+<button onclick="replaceText()">Replace Text in Loop</button>
+<button onclick="stop()">Stop</button>
+
+<script type="text/javascript">
+  function renderOnce() {
+    getRenderer()(document.getElementById('container'),
+        parseInt(document.getElementById('rows').value, 10),
+        parseInt(document.getElementById('columns').value, 10),
+        parseInt(document.getElementById('text-weight').value, 10));
+  }
+
+  function loop() {
+    var fpsDiv = document.getElementById('fps');
+    var container = document.getElementById('container');
+    var rows = parseInt(document.getElementById('rows').value, 10);
+    var cols = parseInt(document.getElementById('columns').value, 10);
+    var textWeight = parseInt(document.getElementById('text-weight').value, 10);
+    var renderFn = getRenderer();
+    var renderer = function() {
+      renderFn(container, rows, cols, textWeight);
+    };
+    renderInLoop(fpsDiv, renderer);
+  }
+
+  function getRenderer() {
+    var select = document.getElementById('rendering');
+    var type = select.options[select.selectedIndex].value;
+    switch (type) {
+      case 'inline':
+        return renderInlineBlockGrid;
+      case 'absolute':
+        return renderAbsoluteGrid;
+      case 'table':
+        return renderTable;
+      case 'single-column':
+        return renderSingleColumnDivs;
+    }
+    throw Error('No renderer');
+  }
+
+  function replaceText() {
+    var fpsDiv = document.getElementById('fps');
+    var rows = parseInt(document.getElementById('rows').value, 10);
+    var cols = parseInt(document.getElementById('columns').value, 10);
+    var textWeight = parseInt(document.getElementById('text-weight').value, 10);
+    renderInLoop(fpsDiv, goog.partial(updateText, rows, cols, textWeight));
+  }
+
+</script>
+<div id="container"></div>
+</body>
+</html>
