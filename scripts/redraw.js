@@ -65,7 +65,7 @@ function renderTable(container, numRows, numColumns, textWeight) {
     var rowHtml = [];
     rowHtml[0] = '<tr>';
     for (var col = 1; col <= numColumns; col++) {
-      rowHtml[col] = ['<td><div id="', getId(row, col), '">', getText(textWeight), '</div></td>'].join('');
+      rowHtml[col] = ['<td id="', getId(row, col), '">', getText(textWeight), '</td>'].join('');
     }
     rowHtml.push('</tr>');
     html.push(rowHtml.join(''));
