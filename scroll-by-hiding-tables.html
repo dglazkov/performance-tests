@@ -66,6 +66,19 @@
 </style>
 <script>
 
+
+[ 'webkit', 'moz', 'ms' ].forEach(function(prefix) {
+    var name = prefix + 'RequestAnimationFrame';
+    if (window[name])
+        window.requestAnimationFrame = window[name];
+});
+
+if (!window.requestAnimationFrame) {
+    window.requestAnimation = function() {
+        alert('This test requires window.requestAnimationFrame API.')
+    }
+} 
+
 window.util = {
   randomInt: function(a) {
       return Math.floor(Math.random() * a);
@@ -104,7 +117,7 @@ Harness.prototype = {
         this.running = true;
         this.last = new Date();
         this.runCount = 0;
-        window.webkitRequestAnimationFrame(this._cycle);
+        window.requestAnimationFrame(this._cycle);
     },
     inputChangeHandlers: {
         'many-tables': function() {
@@ -154,7 +167,7 @@ Harness.prototype = {
         }
         this.last = now;
         this.test.cycle();
-        window.webkitRequestAnimationFrame(this._cycle);
+        window.requestAnimationFrame(this._cycle);
     },
     _setup: function() {
         this.status = document.querySelector('header>span');
