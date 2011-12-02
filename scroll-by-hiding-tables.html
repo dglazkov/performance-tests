@@ -5,7 +5,7 @@
 
     header>em {
         display: inline-block;
-        width: 20px;
+        width: 30px;
         padding: 0 5px;
         background-color: Black;
         color: Red;
@@ -15,6 +15,19 @@
     table {
       table-layout: fixed;
       width: 10px; /* Apparently this is necessary to actually allow sizing a table cell?! */
+    }
+
+    table.stacked {
+        position: absolute;
+        background-color: White;
+    }
+
+    div.composited {
+        -webkit-transform: translateZ(0);
+    }
+
+    div.composited table {
+        -webkit-transform: translateZ(0);
     }
 
     td {
@@ -70,13 +83,14 @@ function Harness()
 
 Harness.prototype = {
     running: false,
-    runCount: 0,
+    lastUpdatedFps: new Date(),
     run: function() {
         if (!this.test)
             return;
-        if (this.running)
+        if (this.running) {
             restart();
-        console.log(this.test);
+            return;
+        }
         this.container.innerHTML = '';
         this.test.setup(this.container);
         this.running = true;
@@ -84,45 +98,61 @@ Harness.prototype = {
         this.runCount = 0;
         window.webkitRequestAnimationFrame(this._cycle);
     },
-    checkboxHandlers: {
-        'one-table': function(on) {
-            this.test = on ? new SlidingTableTest() : new ManyTablesTest();
-            console.log('Changed test to: ' + this.test);
-            if (this.running)
-                this.restart();
+    inputChangeHandlers: {
+        'many-tables': function() {
+            this.test = new ManyTablesTest();
+            return true;
         },
-        'overflow': function(on) {
+        'one-table': function(input) {
+            this.test = new SlidingTableTest();
+            return true;
+        },
+        'stacked-tables': function(input) {
+            this.test = new StackedTablesTest();
+            return true;
+        },
+        'stacked-tables-zindex': function(input) {
+            this.test = new StackedTablesZIndexTest();
+            return true;
+        },
+        'overflow': function() {
             this.container.classList.toggle('overflow');
         },
-        'clip': function(on) {
+        'clip': function() {
             this.container.classList.toggle('clip');
+        },
+        'composited': function() {
+            this.container.classList.toggle('composited');
         }
     },
-    checkboxChanged: function(evt) {
-        (this.checkboxHandlers[evt.target.className] || function() {}).call(this);
+    inputChanged: function(evt) {
+        if ((this.inputChangeHandlers[evt.target.value] || function() {}).call(this, evt.target) && this.running)
+            this.restart();
     },
     restart: function() {
-        stop();
+        this.stop();
         window.setTimeout(this.run.bind(this), 20);
     },
     stop: function() {
         this.running = false;
     },
     _cycle: function() {
+        if (!this.running)
+            return;
         var now = new Date();
-        if (this.runCount++ % 10 == 0)
-            this.fps.replaceChild(document.createTextNode(Math.round(1000 / (now - this.last))), this.fps.firstChild);
+        if (now - this.lastUpdatedFps > 1000) {
+            this.fps.replaceChild(document.createTextNode((1000 / (now - this.last)).toFixed(1)), this.fps.firstChild);
+            this.lastUpdatedFps = now;
+        }
         this.last = now;
         this.test.cycle();
-        if (this.running)
-            window.webkitRequestAnimationFrame(this._cycle);
+        window.webkitRequestAnimationFrame(this._cycle);
     },
     _setup: function() {
         this.status = document.querySelector('header>span');
         this.fps = document.querySelector('header>em');
-        [].forEach.call(document.querySelectorAll('header>input[type=checkbox]'), function(checkbox) {
-            console.log(checkbox);
-            checkbox.addEventListener('click', this.checkboxChanged.bind(this), false);
+        [].forEach.call(document.querySelectorAll('header input'), function(input) {
+            input.addEventListener('change', this.inputChanged.bind(this), false);
         }, this);
         this.container = document.querySelector('#container');
         document.querySelector('#go').addEventListener('click', this.run.bind(this));
@@ -225,18 +255,92 @@ SlidingTableTest.prototype.cycle = function()
     this.tbodies[this.currentWindow].className = '';
 }
 
+
+function StackedTablesTest()
+{
+    ManyTablesTest.call(this);
+}
+
+
+StackedTablesTest.prototype = Object.create(ManyTablesTest.prototype);
+
+StackedTablesTest.prototype.setup = function(container)
+{
+    this.container = container;
+    this.tables = [];
+    for(var i = 0; i < this.TABLE_COUNT; i++) {
+        var table = this.createTable(this.numRows, this.numColumns, this.textWeight);
+        table.className = 'stacked';
+        this.initTable(table, i);
+        this.container.appendChild(table);
+        this.tables.push(table);
+    }
+}
+
+StackedTablesTest.prototype.initTable = function(table, index)
+{
+    if (index)
+        table.style.visibility = 'hidden';
+}
+
+StackedTablesTest.prototype.showTable = function(table, index)
+{
+    table.style.visibility = 'visible';
+}
+
+StackedTablesTest.prototype.hideTable = function(table, index)
+{
+    table.style.visibility = 'hidden';
+}
+
+StackedTablesTest.prototype.cycle = function()
+{
+    this.hideTable(this.tables[this.currentTable], this.currentTable);
+    if (++this.currentTable >= this.TABLE_COUNT)
+        this.currentTable = 0;
+    this.showTable(this.tables[this.currentTable], this.currentTable);
+}
+
+
+function StackedTablesZIndexTest()
+{
+    StackedTablesTest.call(this);
+}
+
+StackedTablesZIndexTest.prototype = Object.create(StackedTablesTest.prototype);
+
+StackedTablesZIndexTest.prototype.initTable = function(table, index)
+{
+    table.style.zIndex = index ? String(index) : '2000';
+}
+
+StackedTablesZIndexTest.prototype.showTable = function(table, index)
+{
+    table.style.zIndex = '2000';
+}
+
+StackedTablesZIndexTest.prototype.hideTable = function(table, index)
+{
+    table.style.zIndex = String(index);
+}
+
+
 var harness = new Harness();
 harness.test = new ManyTablesTest();
 
 </script>
 <body>
 <header>
-    <em> </em>
+    <em>FPS</em>
     <button id="go">Go</button>
     <button id="stop">Stop</button>
-    <input class="one-table" type="checkbox">Use one table
-    <input class="overflow" type="checkbox">Use overflow:hidden
-    <input class="clip" type="checkbox">Use clip
+    <label><input name="test" value="many-tables" type="radio" checked>Multiple tables</label>
+    <label><input name="test" value="one-table" type="radio">One table</label>
+    <label><input name="test" value="stacked-tables" type="radio">Stacked tables</label>
+    <label><input name="test" value="stacked-tables-zindex" type="radio">Stacked tables using z-index</label>
+    <label><input value="overflow" type="checkbox">Use overflow:hidden</label>
+    <label><input value="clip" type="checkbox">Use clip</label>
+    <label><input value="composited" type="checkbox">Use compositing</label>
     <span></span>
 </header>
 <div id="container"></div>
