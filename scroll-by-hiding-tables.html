@@ -2,15 +2,40 @@
 <html>
 <head><title>Scroll by hiding tables</title></head>
 <style>
+
+    header>em {
+        display: inline-block;
+        width: 20px;
+        padding: 0 5px;
+        background-color: Black;
+        color: Red;
+        text-align: right;
+    }
+
     table {
       table-layout: fixed;
-      border-collapse: separate;
       width: 10px; /* Apparently this is necessary to actually allow sizing a table cell?! */
     }
 
     td {
-      width: 100px;
-      border: 1px solid Black;
+        width: 80px;
+        border: 1px solid Black;
+    }
+
+    div.overflow td {
+        overflow: hidden;
+    }
+
+    div.clip td>div {
+        width: 76px;
+        height: 16px;
+    }
+
+    div.clip td>div>div {
+        position: absolute;
+        width: 70px;
+        height: 16px;
+        clip: auto;
     }
 
     .hidden {
@@ -47,7 +72,10 @@ Harness.prototype = {
     running: false,
     runCount: 0,
     run: function() {
-        this.test = this.useOneTable.checked ? new SlidingTableTest() : new ManyTablesTest();
+        if (!this.test)
+            return;
+        if (this.running)
+            restart();
         console.log(this.test);
         this.container.innerHTML = '';
         this.test.setup(this.container);
@@ -55,6 +83,27 @@ Harness.prototype = {
         this.last = new Date();
         this.runCount = 0;
         window.webkitRequestAnimationFrame(this._cycle);
+    },
+    checkboxHandlers: {
+        'one-table': function(on) {
+            this.test = on ? new SlidingTableTest() : new ManyTablesTest();
+            console.log('Changed test to: ' + this.test);
+            if (this.running)
+                this.restart();
+        },
+        'overflow': function(on) {
+            this.container.classList.toggle('overflow');
+        },
+        'clip': function(on) {
+            this.container.classList.toggle('clip');
+        }
+    },
+    checkboxChanged: function(evt) {
+        (this.checkboxHandlers[evt.target.className] || function() {}).call(this);
+    },
+    restart: function() {
+        stop();
+        window.setTimeout(this.run.bind(this), 20);
     },
     stop: function() {
         this.running = false;
@@ -71,7 +120,10 @@ Harness.prototype = {
     _setup: function() {
         this.status = document.querySelector('header>span');
         this.fps = document.querySelector('header>em');
-        this.useOneTable = document.querySelector('header>input[type=checkbox]');
+        [].forEach.call(document.querySelectorAll('header>input[type=checkbox]'), function(checkbox) {
+            console.log(checkbox);
+            checkbox.addEventListener('click', this.checkboxChanged.bind(this), false);
+        }, this);
         this.container = document.querySelector('#container');
         document.querySelector('#go').addEventListener('click', this.run.bind(this));
         document.querySelector('#stop').addEventListener('click', this.stop.bind(this));
@@ -122,7 +174,7 @@ ManyTablesTest.prototype.createTBodyHtml = function(numRows, numColumns, textWei
         var rowHtml = [];
         rowHtml[0] = '<tr>';
         for (var col = 1; col <= numColumns; col++) {
-            rowHtml[col] = ['<td>', this.getText(textWeight), '</td>'].join('');
+            rowHtml[col] = ['<td><div><div>', this.getText(textWeight), '</div></div></td>'].join('');
         }
         rowHtml.push('</tr>');
         html.push(rowHtml.join(''));
@@ -174,6 +226,7 @@ SlidingTableTest.prototype.cycle = function()
 }
 
 var harness = new Harness();
+harness.test = new ManyTablesTest();
 
 </script>
 <body>
@@ -181,7 +234,9 @@ var harness = new Harness();
     <em> </em>
     <button id="go">Go</button>
     <button id="stop">Stop</button>
-    <input type="checkbox">Use one table
+    <input class="one-table" type="checkbox">Use one table
+    <input class="overflow" type="checkbox">Use overflow:hidden
+    <input class="clip" type="checkbox">Use clip
     <span></span>
 </header>
 <div id="container"></div>
