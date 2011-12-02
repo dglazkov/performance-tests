@@ -56,6 +56,10 @@
     }
 
     .hidden {
+        visibility: hidden;
+    }
+
+    .unrendered {
         display: none;
     }
 
@@ -173,6 +177,7 @@ function ManyTablesTest()
     this.numRows = 80;
     this.numColumns = 25;
     this.textWeight = 8;
+    this.className = 'unrendered';
 }
 
 ManyTablesTest.prototype.setup = function(container)
@@ -181,19 +186,34 @@ ManyTablesTest.prototype.setup = function(container)
     this.tables = [];
     for(var i = 0; i < this.TABLE_COUNT; i++) {
         var table = this.createTable(this.numRows, this.numColumns, this.textWeight);
-        if (i)
-            table.style.display = 'none';
+        this.initTable(table, i);
         this.container.appendChild(table);
         this.tables.push(table);
     }
 }
 
+ManyTablesTest.prototype.initTable = function(table, index)
+{
+    if (index)
+        this.hideTable(table, index);
+}
+
+ManyTablesTest.prototype.showTable = function(table, index)
+{
+    table.classList.remove(this.className);
+}
+
+ManyTablesTest.prototype.hideTable = function(table, index)
+{
+    table.classList.add(this.className)
+}
+
 ManyTablesTest.prototype.cycle = function()
 {
-    this.tables[this.currentTable].style.display = 'none';
+    this.hideTable(this.tables[this.currentTable], this.currentTable);
     if (++this.currentTable >= this.TABLE_COUNT)
         this.currentTable = 0;
-    this.tables[this.currentTable].style.removeProperty('display');
+    this.showTable(this.tables[this.currentTable], this.currentTable);
 }
 
 ManyTablesTest.prototype.getText = function()
@@ -246,86 +266,56 @@ SlidingTableTest.prototype.setup = function(container)
     table.innerHTML = html.join('');
     this.tbodies = [].slice.call(table.querySelectorAll('tbody'), 0);
     this.tbodies.forEach(function(tbody) {
-        tbody.className = 'hidden';
+        tbody.classList.add('unrendered');
     });
     this.container.appendChild(table);
 }
 
 SlidingTableTest.prototype.cycle = function()
 {
-    this.tbodies[this.currentWindow].className = 'hidden';
+    this.tbodies[this.currentWindow].classList.add('unrendered');
     if (++this.currentWindow >= this.numWindows)
         this.currentWindow = 0;
-    this.tbodies[this.currentWindow].className = '';
+    this.tbodies[this.currentWindow].classList.remove('unrendered')
 }
 
 
 function StackedTablesTest()
 {
     ManyTablesTest.call(this);
+    this.className = 'hidden';
 }
-
 
 StackedTablesTest.prototype = Object.create(ManyTablesTest.prototype);
 
-StackedTablesTest.prototype.setup = function(container)
-{
-    this.container = container;
-    this.tables = [];
-    for(var i = 0; i < this.TABLE_COUNT; i++) {
-        var table = this.createTable(this.numRows, this.numColumns, this.textWeight);
-        table.className = 'stacked';
-        this.initTable(table, i);
-        this.container.appendChild(table);
-        this.tables.push(table);
-    }
-}
-
 StackedTablesTest.prototype.initTable = function(table, index)
 {
-    if (index)
-        table.style.visibility = 'hidden';
-}
-
-StackedTablesTest.prototype.showTable = function(table, index)
-{
-    table.style.visibility = 'visible';
-}
-
-StackedTablesTest.prototype.hideTable = function(table, index)
-{
-    table.style.visibility = 'hidden';
-}
-
-StackedTablesTest.prototype.cycle = function()
-{
-    this.hideTable(this.tables[this.currentTable], this.currentTable);
-    if (++this.currentTable >= this.TABLE_COUNT)
-        this.currentTable = 0;
-    this.showTable(this.tables[this.currentTable], this.currentTable);
+    table.classList.add('stacked');
+    ManyTablesTest.prototype.initTable.call(this, table, index);
 }
 
 
 function StackedTablesZIndexTest()
 {
-    StackedTablesTest.call(this);
+    ManyTablesTest.call(this);
 }
 
-StackedTablesZIndexTest.prototype = Object.create(StackedTablesTest.prototype);
+StackedTablesZIndexTest.prototype = Object.create(ManyTablesTest.prototype);
 
 StackedTablesZIndexTest.prototype.initTable = function(table, index)
 {
-    table.style.zIndex = index ? String(index) : '2000';
+    table.classList.add('stacked');
+    table.style.zIndex = index ? '1' : '2000';
 }
 
-StackedTablesZIndexTest.prototype.showTable = function(table, index)
+StackedTablesZIndexTest.prototype.showTable = function(table)
 {
     table.style.zIndex = '2000';
 }
 
-StackedTablesZIndexTest.prototype.hideTable = function(table, index)
+StackedTablesZIndexTest.prototype.hideTable = function(table)
 {
-    table.style.zIndex = String(index);
+    table.style.zIndex = '1';
 }
 
 
