@@ -10,10 +10,8 @@
     }
 
     .table-cell {
-      /* overflow:hidden */
-
       width: 75px;
-      border: 1px solid Gray;      
+      border: 1px solid Gray;
     }
 
     .table-row {
@@ -40,21 +38,22 @@
 
     .column-div {
       width: 75px;
-      border: 1px solid Gray;      
+      border: 1px solid Gray;
       display: inline-block;
     }
 
     #container {
       position: relative;
-      white-space: nowrap;      
+      white-space: nowrap;
     }
 
   </style>
 </head>
 <body>
-<div>Grid rendering benchmarks</div>
+<div>Rendering large grids with progressive rendering (50 rows at a time)</div>
 FPS: <span id="fps"></span>
-Rows: <input type="text" id="rows" value="80"/>
+Elapsed: <span id="elapsed"></span>
+Rows: <input type="text" id="rows" value="10000"/>
 Columns: <input type="text" id="columns" value="25"/>
 Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
 <select id="rendering">
@@ -63,30 +62,43 @@ Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
   <option value="absolute">Absolute divs</option>
   <option value="single-column">Single Column Divs</option>
 </select>
-<button onclick="renderOnce()">Render Once</button>
-<button onclick="loop()">Render in Loop</button>
-<button onclick="replaceText()">Replace Text in Loop</button>
-<button onclick="stop()">Stop</button>
-
+Overflow:hidden<input id="overflow" type="checkbox"/>
+<button onclick="renderOnce()">Render At Once</button>
+<button onclick="renderProgressively()">Render Progressively</button>
+<button onclick="clearHtml()">Clear</button>
 <script type="text/javascript">
   function renderOnce() {
+    updateOverflow();
     getRenderer()(document.getElementById('container'),
         parseInt(document.getElementById('rows').value, 10),
         parseInt(document.getElementById('columns').value, 10),
         parseInt(document.getElementById('text-weight').value, 10));
   }
 
-  function loop() {
+  var CHUNK_SIZE = 50;
+  function renderProgressively() {
     var fpsDiv = document.getElementById('fps');
+    var elapsedDiv = document.getElementById('elapsed');
     var container = document.getElementById('container');
     var rows = parseInt(document.getElementById('rows').value, 10);
     var cols = parseInt(document.getElementById('columns').value, 10);
     var textWeight = parseInt(document.getElementById('text-weight').value, 10);
+
+    updateOverflow();
     var renderFn = getRenderer();
+    var start = new Date().getTime();
     var renderer = function() {
-      renderFn(container, rows, cols, textWeight);
-      return true;
+      var div = document.createElement('div');
+      container.appendChild(div);
+      renderFn(div, Math.min(rows, CHUNK_SIZE), cols, textWeight);
+      rows -= CHUNK_SIZE;
+      var done = rows <= 0;
+      elapsedDiv.style.backgroundColor = done ? 'green' : '';
+      elapsedDiv.innerHTML = done ?
+          (new Date().getTime()) - start + 'ms' : '';
+      return !done;
     };
+
     renderInLoop(fpsDiv, renderer);
   }
 
@@ -106,18 +118,21 @@ Text weight:<input type="text" id="text-weight" value="8" style="width:20px;"/>
     throw Error('No renderer');
   }
 
-  function replaceText() {
-    var fpsDiv = document.getElementById('fps');
-    var rows = parseInt(document.getElementById('rows').value, 10);
-    var cols = parseInt(document.getElementById('columns').value, 10);
-    var textWeight = parseInt(document.getElementById('text-weight').value, 10);
+  function clearHtml() {
+    document.getElementById('container').innerHTML = '';
+  }
 
-    var updater = function() {
-      updateText(rows, cols, textWeight);
-      return true;
-    };
-
-    renderInLoop(fpsDiv, updater);
+  var styleNode;
+  function updateOverflow() {
+    if (styleNode) {
+      removeNode(styleNode);
+    }
+    var overflowHidden = document.getElementById('overflow').checked;
+    if (overflowHidden) {
+      styleNode = document.createElement('style');
+      styleNode.innerText = '.table-cell{overflow:hidden}';
+      document.body.appendChild(styleNode);
+    }
   }
 
 </script>
